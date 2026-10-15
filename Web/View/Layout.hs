@@ -17,15 +17,29 @@ defaultLayout inner = [hsx|
         {stylesheets}
         {scripts}
 
-        <title>{pageTitleOrDefault "App"}</title>
+        <title>{pageTitleOrDefault "SGA-Func"}</title>
     </head>
     <body>
+        {navbar}
         <div class="container mt-4">
             {renderFlashMessages}
             {inner}
         </div>
     </body>
 </html>
+|]
+
+navbar :: Html
+navbar = [hsx|
+    <nav class="navbar navbar-expand navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">SGA-Func</a>
+            <div class="navbar-nav">
+                <a class="nav-link" href={StudentsAction}>Estudantes</a>
+                <a class="nav-link" href={CoursesAction}>Cursos</a>
+            </div>
+        </div>
+    </nav>
 |]
 
 -- The 'assetPath' function used below appends a `?v=SOME_VERSION` to the static assets in production
