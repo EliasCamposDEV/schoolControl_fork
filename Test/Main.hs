@@ -7,12 +7,12 @@ import Generated.Types
 import Application.Domain
 import System.IO (hSetEncoding, stdout, stderr, utf8)
 
--- | Monta uma nota sem tocar no banco.
+-- Monta nota sem tocar no banco TESTEEES
 nota :: Double -> Double -> Maybe Double -> Grade
-nota n1 n2 exame = newRecord @Grade
-    |> set #p1 n1
-    |> set #p2 n2
-    |> set #finalExam exame
+nota av1 av2 av3 = newRecord @Grade
+    |> set #pe1 av1 |> set #avf1 av1
+    |> set #pe2 av2 |> set #avf2 av2
+    |> set #pe3 av3 |> set #avf3 av3
 
 main :: IO ()
 main = do
@@ -24,13 +24,27 @@ main = do
 specs :: Spec
 specs = do
     describe "mediaPonderada (currying e closures)" do
-        it "aplica os pesos padrão 40/60" do
-            mediaPadrao 5 10 `shouldBe` 8
+        it "compõe a AV com 70% PE + 30% AVf" do
+            comporAV 8 6 `shouldBe` 7.4
         it "mediaSimples é a mesma função com outros pesos" do
             mediaSimples 5 10 `shouldBe` 7.5
         it "a aplicação parcial pode ser guardada e reutilizada" do
-            let pesoDobradoNaP2 = mediaPonderada (Pesos 1 2)
-            map (uncurry pesoDobradoNaP2) [(3, 6), (9, 0)] `shouldBe` [5, 3]
+            let pesoDobradoNaFormativa = mediaPonderada (Pesos 1 2)
+            map (uncurry pesoDobradoNaFormativa) [(3, 6), (9, 0)] `shouldBe` [5, 3]
+
+    describe "composição das notas" do
+        let grade = newRecord @Grade
+                |> set #pe1 8 |> set #avf1 6
+                |> set #pe2 6 |> set #avf2 10
+        it "calcula AV1, AV2 e a média parcial" do
+            (notaAV1 grade, notaAV2 grade, mediaParcial grade) `shouldBe` (7.4, 7.2, 7.3)
+        it "AV3 só existe quando PE3 e AVf3 foram lançadas" do
+            notaAV3 grade `shouldBe` Nothing
+            notaAV3 (grade |> set #pe3 (Just 5)) `shouldBe` Nothing
+            notaAV3 (grade |> set #pe3 (Just 5) |> set #avf3 (Just 5)) `shouldBe` Just 5
+        it "NF = (média parcial + AV3) / 2" do
+            mediaFinal (nota 6 6 (Just 5)) `shouldBe` 5.5
+            mediaFinal (nota 6 8 Nothing) `shouldBe` 7
 
     describe "classificarMedia (IMC adaptado)" do
         it "enquadra a média em faixas" do
@@ -38,25 +52,26 @@ specs = do
                 `shouldBe` [Insuficiente, Regular, Bom, Otimo, Excelente]
 
     describe "situacaoDaMatricula (pattern matching)" do
-        it "aprova com média >= 7" do
-            situacaoDaMatricula Ativa (nota 7 7 Nothing) `shouldBe` Aprovado
-        it "manda para exame com média entre 4 e 7" do
-            situacaoDaMatricula Ativa (nota 5 5 Nothing) `shouldBe` EmExame
-        it "reprova com média < 4" do
-            situacaoDaMatricula Ativa (nota 2 3 Nothing) `shouldBe` Reprovado
-        it "usa o exame final quando existe" do
-            situacaoDaMatricula Ativa (nota 5 5 (Just 6)) `shouldBe` Aprovado
-            situacaoDaMatricula Ativa (nota 5 5 (Just 2)) `shouldBe` Reprovado
+        it "reprova se a média de AV1 e AV2 for menor que 4" do
+            situacaoDaMatricula Ativa (nota 3 3 Nothing) `shouldBe` Reprovado
+        it "aguarda a AV3 enquanto ela não for lançada" do
+            situacaoDaMatricula Ativa (nota 6 6 Nothing) `shouldBe` AguardandoAV3
+        it "reprova se a AV3 for menor que 4" do
+            situacaoDaMatricula Ativa (nota 6 6 (Just 3)) `shouldBe` Reprovado
+        it "aprova com NF >= 5" do
+            situacaoDaMatricula Ativa (nota 6 6 (Just 5)) `shouldBe` Aprovado
+        it "reprova com NF < 5 mesmo com AV3 >= 4" do
+            situacaoDaMatricula Ativa (nota 4 4 (Just 4)) `shouldBe` Reprovado
         it "matrícula trancada ignora as notas" do
-            situacaoDaMatricula Trancada (nota 10 10 Nothing) `shouldBe` Trancado
+            situacaoDaMatricula Trancada (nota 10 10 (Just 10)) `shouldBe` Trancado
 
     describe "validações" do
         it "aceita notas entre 0 e 10" do
-            validarNota "p1" 7 `shouldBe` Right 7
-            validarNota "p1" 11 `shouldBe` Left (NotaForaDoIntervalo "p1" 11)
+            validarNota "pe1" 7 `shouldBe` Right 7
+            validarNota "pe1" 11 `shouldBe` Left (NotaForaDoIntervalo "pe1" 11)
         it "valida todas as notas de uma Grade" do
-            validarGrade (nota 7 (-1) (Just 12))
-                `shouldBe` [NotaForaDoIntervalo "p2" (-1), NotaForaDoIntervalo "finalExam" 12]
+            validarGrade (nota 7 7 Nothing |> set #pe2 (-1) |> set #pe3 (Just 12))
+                `shouldBe` [NotaForaDoIntervalo "pe2" (-1), NotaForaDoIntervalo "pe3" 12]
         it "valida nome e e-mail do estudante" do
             let student = newRecord @Student |> set #name " " |> set #email "ana.com"
             validarStudent student `shouldBe` [CampoVazio "name", EmailInvalido "ana.com"]
@@ -76,7 +91,7 @@ specs = do
             matBruno = newRecord @Enrollment
                 |> set #id "55555555-5555-5555-5555-555555555555"
                 |> set #studentId bruno.id |> set #courseId curso.id |> set #status Trancada
-            notaAna   = nota 8 9 Nothing |> set #enrollmentId matAna.id
+            notaAna   = nota 8 9 (Just 7) |> set #enrollmentId matAna.id
             notaBruno = nota 3 3 Nothing |> set #enrollmentId matBruno.id
             linhas = boletim [ana, bruno] [matAna, matBruno] [notaAna, notaBruno]
 

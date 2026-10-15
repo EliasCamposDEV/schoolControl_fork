@@ -22,12 +22,17 @@ CREATE TABLE enrollments (
     status enrollment_status DEFAULT 'ativa' NOT NULL
 );
 
+-- AVn = 70% PE(prova escrita) + 30% AVf(avaliação formativa).
+-- pe3/avf3 são opcionais: a AV3 só é lançada se a média de AV1 e AV2 for >= 4,0.
 CREATE TABLE grades (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY NOT NULL,
     enrollment_id UUID NOT NULL,
-    p1 DOUBLE PRECISION NOT NULL,
-    p2 DOUBLE PRECISION NOT NULL,
-    final_exam DOUBLE PRECISION
+    pe1 DOUBLE PRECISION NOT NULL,
+    avf1 DOUBLE PRECISION NOT NULL,
+    pe2 DOUBLE PRECISION NOT NULL,
+    avf2 DOUBLE PRECISION NOT NULL,
+    pe3 DOUBLE PRECISION DEFAULT NULL,
+    avf3 DOUBLE PRECISION DEFAULT NULL
 );
 
 CREATE INDEX enrollments_student_id_index ON enrollments (student_id);
