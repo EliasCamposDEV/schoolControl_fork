@@ -1,7 +1,9 @@
+Link para o repositório : [link](https://github.com/floriano-ux/schoolControl/tree/feat/studentsCourses-crud)
+
 # School Control - Sistema de Gestão Académica (IHP + Haskell)
 
 
-## Sobre o Projeto
+# Sobre o Projeto
 
 O **School Control** é um sistema de gestão académica para controlo de alunos, cursos, matrículas e avaliação de desempenho académico. A lógica de negócio foca-se nos princípios do paradigma funcional puro, aplicando tipos algébricos de dados, imutabilidade, funções puras, currying, closures, pattern matching e list comprehensions.
 
